@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="logo.png">
 <title>Analysis — Edit Detector</title>
+<link rel="icon" href="logo.png">
 <meta name="theme-color" content="#0a0a0a" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +38,7 @@ svg{width:1em;height:1em;display:block}
 /* header */
 header .shell{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding-block:1.25rem}
 .brand{display:flex;align-items:center;gap:.5rem;font-size:1.125rem;font-weight:600;letter-spacing:-.01em;transition:transform .35s cubic-bezier(.2,.8,.2,1.5)}
-.logoimg{height:1.6rem;width:auto;max-width:2.4rem;object-fit:contain;display:block}
+.logoimg{height:2.6rem;width:auto;max-width:none;object-fit:contain;display:block}
 .brand:hover{transform:scale(1.04)}.brand svg{font-size:1.25rem;color:var(--ac)}
 .mb{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em}.mb:hover{background:#fff}
 /* layout */
@@ -161,7 +161,8 @@ li+li>.row{border-top:1px solid var(--line);border-radius:0}
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const API=location.protocol.startsWith('http')?location.origin:'http://localhost:8000';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-$('#lgo').innerHTML='<svg viewBox="0 0 48 48" fill="currentColor" style="font-size:1.25rem;color:#b15f2c"><path d="M24 2c2.2 13.8 7.9 19.6 22 22-14.1 2.4-19.8 8.2-22 22-2.2-13.8-7.9-19.6-22-22 14.1-2.4 19.8-8.2 22-22Z"/></svg>';
+$('#lgo').innerHTML='<img class="logoimg" src="logo.png" alt="" draggable="false">';
+$('#lgo img').addEventListener('error',e=>{e.target.outerHTML='<svg viewBox="0 0 48 48" fill="currentColor" style="font-size:1.25rem;color:#b15f2c"><path d="M24 2c2.2 13.8 7.9 19.6 22 22-14.1 2.4-19.8 8.2-22 22-2.2-13.8-7.9-19.6-22-22 14.1-2.4 19.8-8.2 22-22Z"/></svg>'});
 $('#bk').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const AR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',DL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>';
 $('#up').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>';
