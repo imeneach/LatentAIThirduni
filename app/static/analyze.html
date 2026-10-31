@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="logo.png">
 <title>Analysis — Edit Detector</title>
 <meta name="theme-color" content="#0a0a0a" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,6 +38,7 @@ svg{width:1em;height:1em;display:block}
 /* header */
 header .shell{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding-block:1.25rem}
 .brand{display:flex;align-items:center;gap:.5rem;font-size:1.125rem;font-weight:600;letter-spacing:-.01em;transition:transform .35s cubic-bezier(.2,.8,.2,1.5)}
+.logoimg{height:1.6rem;width:auto;max-width:2.4rem;object-fit:contain;display:block}
 .brand:hover{transform:scale(1.04)}.brand svg{font-size:1.25rem;color:var(--ac)}
 .mb{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em}.mb:hover{background:#fff}
 /* layout */
@@ -118,7 +120,7 @@ li+li>.row{border-top:1px solid var(--line);border-radius:0}
 </head>
 <body>
 <header><div class="shell">
-<a class="brand" href="index.html"><span id="lgo" style="display:block"></span>Edit Detector</a>
+<a class="brand" href="index.html"><span id="lgo" style="display:brand"></span>LatentAI</a>
 <a class="mb glass" href="index.html"><span style="width:.875rem;display:block;transform:rotate(180deg)" id="bk"></span>Back to home</a>
 </div></header>
 
