@@ -1,63 +1,117 @@
-# Edit Detector API
+# LatentAI (Edit Detector)
 
-Shazam for photo edits: fingerprint an upload, find its original, and fit the slider settings that turn one into the other.
+**Shazam for photo edits.** Upload an edited photo and LatentAI shows you the Lightroom-style slider settings behind it, then lets you download them as a preset or LUT.
+
+**Live demo:** https://latentaithirduni.onrender.com
+*(The free server sleeps when idle. If the page is slow, wait about a minute and refresh.)*
+
+---
+---
+
+## What it is
+
+When a photo is exported, the editing settings are usually lost. If you love someone's look, you end up guessing slider by slider.
+
+LatentAI works backwards from the result:
+
+| You provide | What you get |
+|---|---|
+| An edited photo that still has Lightroom/Camera Raw metadata | The **exact** settings, read from the file |
+| An edited photo **and** the original | **Fitted** slider values, each with an uncertainty, plus a confidence score |
+| An edited photo only, no metadata | A clearly labeled **rough estimate** |
+
+Results include tone curves and heat maps (brightness, saturation, clipping, warmth, change from original). You can download a Lightroom preset (`.xmp`), a 3D LUT (`.cube`), or the values as JSON, CSV or text.
+
+## How to use the website
+
+1. Open the site and click **Analyze a photo**or **deep analyses**
+2. Choose your **edited photo**. Add the **original** too if you have it, because this is much more accurate.
+3. Click **Analyze** and read the summary, confidence and parameters.
+4. Open the **Curves**, **Heat maps** and **Download** tabs.
+5. For a faster, shorter result, use **Analyze** in the top menu (quick analysis).
+
+Your photos are processed in memory and are never stored.
+
+## Run it locally
+
+You need **Python 3.10 or newer**. `exiftool` is optional; the app falls back to a built-in reader without it.
+
+```bash
+# 1. Get the code
+git clone https://github.com/imeneach/LatentAIThirduni.git
+cd LatentAIThirduni
+
+# 2. Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate            # Windows
+# source venv/bin/activate       # macOS / Linux
+
+# 3. Install
+pip install -r requirements.txt
+
+# 4. Start the server
+uvicorn app.main:app --reload
+```
+
+Then open **http://localhost:8000/**. Interactive API docs are at http://localhost:8000/docs.
+
+**With Docker instead:**
+
+```bash
+docker build -t latentai .
+docker run -p 8000:8000 latentai
+```
+
+**Run the tests:**
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                                   # 6 tests on synthetic edits
-uvicorn app.main:app --reload            # UI: http://localhost:8000/   API docs: /docs
-python -m scripts.index_folder ./originals "my-licensed-set"
+pytest -q
 ```
 
-Optional: `pip install -r requirements-clip.txt` and `EMBEDDER=clip` for semantic, crop-robust search and FAISS. `exiftool` on the PATH is used automatically when present; otherwise a regex XMP reader is used.
+**Settings (all optional):** `MAX_UPLOAD_MB` (default 25), `DATA_DIR` (default `./data`), `PORT` (default 8000, used in Docker).
 
-## Interface
-`web/` is a React (Vite) app. A production build is already in `web/dist`, and the server serves it at `http://localhost:8000/`, so Node is NOT needed to use it. To change the design: `cd web && npm install && npm run dev` (hot reload on http://localhost:5173, proxied to the API), then `npm run build` and restart the server.
+## Project layout
 
-## Endpoints (all under `/api/v1`, also available at the root for older clients)
-| Route | Purpose |
+```
+app/
+  main.py        API server and the /analyze pipeline
+  xmp.py         reads exact Lightroom/Camera Raw metadata
+  align.py       aligns the original to the edit (handles crop and resize)
+  model.py       slider model and the optimiser that fits the settings
+  fit.py         runs the fit and produces curves and confidence
+  estimate.py    rough estimate when no original exists
+  export.py      .xmp preset and .cube LUT writers
+  static/        the website (index.html, analyze.html, images)
+scripts/         benchmark and calibration tools
+tests/           automated tests
+Dockerfile       for deployment
+```
+
+## Who built what
+
+| Person | Role and parts |
 |---|---|
-| `POST /metadata` | Exact `crs:*` settings from XMP, if the file still has them |
-| `POST /originals` (alias `/index`) | Add a licensed original to the search index |
-| `POST /search` | Candidate originals for an upload, with cosine scores |
-| `GET /fetch?url=` | Download an image from a direct URL for the UI (blocks internal addresses, nothing stored) |
-| `POST /analyze` (alias `/fit`) | Full pipeline: metadata, then original (provided or found) then align then fit, else heuristic estimate. Returns params, confidence, residual, `unrecognized_pipeline`, tone curves, XMP preset and `.cube` LUT |
+| **Imene Achour** ([@imeneach](https://github.com/imeneach)) | Project lead. Product idea and direction, website design and content, testing, deployment, and the project's submission materials. |
+| **Claude (Anthropic's AI assistant)** | AI-assisted development under Imene's direction: help writing and debugging the Python pipeline and the slider-fitting model, the tests and benchmark.
 
-## How `/fit` decides
-1. XMP present: return exact values (confidence 1.0).
-2. Original provided, or index match above `MATCH_THRESHOLD`: SIFT + RANSAC homography aligns the original to the edit (handles crop and resize), then per-channel histogram matching yields tone curves, from which sliders are read. High residual or large unexplained regions set `unrecognized_pipeline`.
-3. Otherwise a heuristic estimate with confidence <= 0.3.
-
-## Accuracy
-Core sliders are recovered by analysis-by-synthesis (`app/model.py`): render the original with candidate slider values and optimise until it matches the edit, with a weak prior and per-slider uncertainty (`uncertainty` in the response; shown as ± in the UI).
-
-Benchmark (`python -m scripts.benchmark 24`): synthetic edits made with the same model, then cropped 8%, resized and JPEG-compressed at quality 88. This measures the solver and alignment only, not agreement with real Lightroom, and the uncertainty floors were tuned on this same data, so coverage is optimistic.
-```
-24 fitted, 0 alignment failures
-slider                     mean abs err  within 2 sigma
-Exposure2012                       0.02            100%
-Contrast2012                       2.08            100%
-Highlights2012                     7.91             96%
-Shadows2012                        4.55            100%
-Whites2012                        10.56            100%
-Blacks2012                        11.34            100%
-Saturation                         4.09            100%
-IncrementalTemperature             2.17             96%
-IncrementalTint                    5.22             96%
-```
-Exposure, contrast, saturation and warmth are well determined; highlights, whites and blacks overlap in their effect, so their errors and error bars are larger by nature.
-
-**Making it accurate against real Lightroom:** export 20+ pairs (original, edited export, XMP settings), put them in a folder as `NAME.jpg`, `NAME_edit.jpg`, `NAME.xmp`, and run `python -m scripts.calibrate ./pairs`. The API then applies a learned scale and offset per slider (`/api/v1/health` shows which sliders are calibrated).
+AI tools were used heavily on this project, and every part was reviewed and tested by the team.
 
 ## Known limits
-- Default `tiny` embedder is not crop-robust; use CLIP for real data.
-- Absolute slider values follow our own forward model of Lightroom's sliders. Until you run `scripts.calibrate` on real exports they are close approximations, not Lightroom's exact numbers.
-- Fitted values are global approximations; sliders interact, so treat them as a starting point.
-- Temperature and tint are relative (`IncrementalTemperature/Tint`), not Kelvin.
-- Uploaded edits are never stored. Index only images you have rights to.
 
-## Next
-ML estimator trained on synthetic edits (MIT-Adobe FiveK + randomized pipeline), larger licensed preset/LUT library, confidence calibration on degraded images, Celery/Redis job queue, Postgres + pgvector for scale.
+- Slider values come from our own model of Lightroom's sliders, so they are **close approximations**, not Lightroom's exact numbers, until calibrated against real exports.
+- Temperature and tint are relative shifts, not Kelvin.
+- Local brushes, masks and AI edits can't be explained by global sliders. The result warns you and lowers its confidence.
+- Heavy cropping lowers accuracy.
+- The free demo server is slow and sleeps when idle.
 
+## What's next
 
-Errors always look like `{"error": {"code": 400, "message": "..."}}`. Interactive docs: `/docs`.
+Calibrate against real Lightroom exports, handle heavily cropped originals, add Clarity/Texture/Dehaze/HSL sliders, and train a model for the case with no original.
+
+## Security and secrets
+
+This repository contains **no API keys, passwords or private files**, and the app needs none to run. `.env`, `data/`, `venv/` and other local files are listed in `.gitignore`. If you add credentials later, keep them in environment variables and never commit them.
+
+## License
+Imene Achour all rights reserved
